@@ -17,42 +17,31 @@ import androidx.recyclerview.widget.RecyclerView
 class VideoAdapter(private val videoList: List<String>) : RecyclerView.Adapter<VideoAdapter.VideoViewHolder>() {
 
     private var player: SimpleExoPlayer? = null
-
-    inner class VideoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val playerView: PlayerView = itemView.findViewById(R.id.playerView)
-        val usernameTextView: TextView = itemView.findViewById(R.id.userName)
-    }
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoViewHolder {
         val itemView = LayoutInflater.from(parent.context).inflate(R.layout.video_item_layout, parent, false)
-        return VideoViewHolder(itemView)
+        val viewHolder = VideoViewHolder(itemView)
+        viewHolder.playerView.player = player
+        return viewHolder
     }
 
-    override fun onBindViewHolder(holder: VideoViewHolder, position: Int) {
+    @OptIn(UnstableApi::class) override fun onBindViewHolder(holder: VideoViewHolder, position: Int) {
         val videoUri = videoList[position]
         val username = "User ${position + 1}"
         holder.usernameTextView.text = username
-        initializePlayer(holder, videoUri)
+        holder.playerView.player =
+            SimpleExoPlayer.Builder(holder.itemView.context).build().also { exoPlayer ->
+                val mediaItem = MediaItem.fromUri(Uri.parse(videoUri))
+                exoPlayer.setMediaItem(mediaItem)
+                exoPlayer.prepare()
+                exoPlayer.playWhenReady = true
+                exoPlayer.repeatMode = SimpleExoPlayer.REPEAT_MODE_ALL
+            }
     }
-
     override fun getItemCount(): Int {
         return videoList.size
     }
-
-    @OptIn(UnstableApi::class) private fun initializePlayer(holder: VideoViewHolder, videoUri: String) {
-        holder.playerView.player = SimpleExoPlayer.Builder(holder.itemView.context).build().also { exoPlayer ->
-            val mediaItem = MediaItem.fromUri(Uri.parse(videoUri))
-            exoPlayer.setMediaItem(mediaItem)
-            exoPlayer.prepare()
-            exoPlayer.playWhenReady = true
-            exoPlayer.repeatMode = SimpleExoPlayer.REPEAT_MODE_ONE // Optional: Loop video
-            player = exoPlayer
-        }
-    }
-
-    @OptIn(UnstableApi::class) override fun onViewDetachedFromWindow(holder: VideoViewHolder) {
-        super.onViewDetachedFromWindow(holder)
-        player?.release()
-        player = null
+    inner class VideoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val playerView: PlayerView = itemView.findViewById(R.id.playerView)
+        val usernameTextView: TextView = itemView.findViewById(R.id.userName)
     }
 }
